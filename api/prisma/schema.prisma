@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  admin
+  user
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String   @db.VarChar(100)
+  email    String   @unique @db.VarChar(100)
+  password String   @db.VarChar(100)
+  type     UserType @default(user)
+
+  created_at DateTime  @default(now())
+  created_by Int?
+  updated_at DateTime  @updatedAt
+  updated_by Int?
+  deleted_at DateTime?
+  deleted_by Int?
+  cart       Cart?
+
+  @@map("users")
+}
+
+model ProductCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
+  description String? @db.Text
+
+  products Product[]
+
+  created_at DateTime  @default(now())
+  created_by Int?
+  updated_at DateTime  @updatedAt
+  updated_by Int?
+  deleted_at DateTime?
+  deleted_by Int?
+
+  // media Media[] @relation("ProductCategoryMedia")
+
+  @@map("product_categories")
+}
+
+model Product {
+  id                  Int             @id @default(autoincrement())
+  product_category_id Int
+  productCategory     ProductCategory @relation(fields: [product_category_id], references: [id])
+  name                String          @db.VarChar(100)
+  price               Decimal         @default(0) @db.Decimal(10, 2)
+  description         String?         @db.Text
+
+  created_at DateTime  @default(now())
+  created_by Int?
+  updated_at DateTime  @updatedAt
+  updated_by Int?
+  deleted_at DateTime?
+  deleted_by Int?
+
+  // media Media[] @relation("product_media")
+  orderDetails OrderDetail[]
+
+  @@map("products")
+}
+
+enum MediaType {
+  product
+  productCategory
+}
+
+model Media {
+  id         Int       @id @default(autoincrement())
+  media_id   Int
+  media_type MediaType
+  file_name  String
+  path       String
+  size       Int
+  mime_type  String    @db.VarChar(50)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // product   Product? @relation("product_media", fields: [media_id], references: [id], map: "product_media_id")
+  // product_category ProductCategory? @relation("ProductCategoryMedia", fields: [media_id], references: [id], map: "product_category_media_id")
+
+  @@index([media_id, media_type])
+  @@map("media")
+}
+
+model Order {
+  id             Int     @id @default(autoincrement())
+  invoice_number String? @db.VarChar(20)
+  total_price    Decimal @default(0) @db.Decimal(10, 2)
+  description    String? @db.Text()
+
+  created_at   DateTime      @default(now())
+  created_by   Int?
+  updated_at   DateTime      @updatedAt
+  updated_by   Int?
+  deleted_at   DateTime?
+  deleted_by   Int?
+  orderDetails OrderDetail[]
+
+  @@map("orders")
+}
+
+model OrderDetail {
+  id          Int     @id @default(autoincrement())
+  order       Order   @relation(fields: [order_id], references: [id])
+  order_id    Int
+  product     Product @relation(fields: [product_id], references: [id])
+  product_id  Int
+  qty         Int     @db.SmallInt
+  price       Decimal @default(0) @db.Decimal(10, 2)
+  total_price Decimal @default(0) @db.Decimal(10, 2)
+
+  created_at DateTime  @default(now())
+  created_by Int?
+  updated_at DateTime  @updatedAt
+  updated_by Int?
+  deleted_at DateTime?
+  deleted_by Int?
+
+  @@map("order_details")
+}
+
+model InvoiceSequence {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date()
+  next_number Int      @db.Int()
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("invoice_sequences")
+}
+
+model Cart {
+  user_id     Int     @id
+  user        User    @relation(fields: [user_id], references: [id])
+  items       Json    @db.Json
+  total_price Decimal @default(0) @db.Decimal(10, 2)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("carts")
+}
